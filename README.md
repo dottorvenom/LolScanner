@@ -43,17 +43,6 @@ Drivers already confirmed vulnerable by hash are skipped in this pass to avoid d
 
 ---
 
-## Build & Run
-
-```bash
-csc ByovdScanner.cs /r:Microsoft.VisualBasic.dll /r:System.Web.Extensions.dll /r:System.Net.Http.dll
-ByovdScanner.exe
-```
-
-Or add the file to a Visual Studio / MSBuild project targeting `net452` or later.
-
----
-
 ## Output
 
 Color-coded console output:
