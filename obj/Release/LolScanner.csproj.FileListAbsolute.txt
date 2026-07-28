@@ -1,0 +1,7 @@
+C:\Users\Dino\Documents\GitHub\LolScanner\bin\Release\LolScanner.exe.config
+C:\Users\Dino\Documents\GitHub\LolScanner\bin\Release\LolScanner.exe
+C:\Users\Dino\Documents\GitHub\LolScanner\bin\Release\LolScanner.pdb
+C:\Users\Dino\Documents\GitHub\LolScanner\obj\Release\LolScanner.csproj.AssemblyReference.cache
+C:\Users\Dino\Documents\GitHub\LolScanner\obj\Release\LolScanner.csproj.CoreCompileInputs.cache
+C:\Users\Dino\Documents\GitHub\LolScanner\obj\Release\LolScanner.exe
+C:\Users\Dino\Documents\GitHub\LolScanner\obj\Release\LolScanner.pdb
