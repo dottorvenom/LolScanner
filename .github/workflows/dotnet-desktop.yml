@@ -10,8 +10,9 @@ permissions:
 
 env:
   Solution_Name: LolScanner.sln
-  Wap_Project_Directory: your-wap-project-directory
-  Wap_Project_Path: your-wap-project-path.wapproj
+  # Correggi questi percorsi con quelli reali del tuo progetto
+  Wap_Project_Directory: LolScanner
+  Wap_Project_Path: LolScanner\LolScanner.wapproj
 
 jobs:
   build-release:
@@ -40,10 +41,12 @@ jobs:
 
     - name: Decode signing certificate
       shell: pwsh
+      if: env.Base64_Encoded_Pfx != ''  # Salta se il secret non è impostato
       run: |
         $pfx = [System.Convert]::FromBase64String("${{ secrets.Base64_Encoded_Pfx }}")
-        $certificatePath = Join-Path $env:Wap_Project_Directory "GitHubActionsWorkflow.pfx"
+        $certificatePath = Join-Path $env:GITHUB_WORKSPACE "GitHubActionsWorkflow.pfx"
         [System.IO.File]::WriteAllBytes($certificatePath, $pfx)
+        echo "CERTIFICATE_PATH=$certificatePath" >> $env:GITHUB_ENV
 
     - name: Build MSIX
       run: |
@@ -52,11 +55,15 @@ jobs:
         /p:UapAppxPackageBuildMode=StoreUpload `
         /p:AppxBundle=Always `
         /p:AppxBundlePlatforms="x86|x64" `
-        /p:PackageCertificateKeyFile=GitHubActionsWorkflow.pfx `
+        /p:PackageCertificateKeyFile=$env:GITHUB_WORKSPACE\GitHubActionsWorkflow.pfx `
         /p:PackageCertificatePassword=${{ secrets.Pfx_Key }}
 
     - name: Remove certificate
-      run: Remove-Item $env:Wap_Project_Directory\GitHubActionsWorkflow.pfx
+      if: always()  # Rimuovi sempre, anche se il build fallisce
+      run: |
+        if (Test-Path "$env:GITHUB_WORKSPACE\GitHubActionsWorkflow.pfx") {
+          Remove-Item "$env:GITHUB_WORKSPACE\GitHubActionsWorkflow.pfx"
+        }
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
@@ -67,9 +74,15 @@ jobs:
     - name: Zip package
       shell: pwsh
       run: |
-        Compress-Archive `
-          -Path "${{ env.Wap_Project_Directory }}\AppPackages\*" `
-          -DestinationPath "release.zip"
+        $appPackagesPath = Join-Path $env:Wap_Project_Directory "AppPackages"
+        if (Test-Path $appPackagesPath) {
+          Compress-Archive `
+            -Path "$appPackagesPath\*" `
+            -DestinationPath "release.zip" `
+            -Force
+        } else {
+          Write-Host "::warning::AppPackages directory not found"
+        }
 
     - name: Create Release
       uses: softprops/action-gh-release@v2
