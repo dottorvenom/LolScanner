@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 env:
-  Solution_Name: your-solution-name.sln
+  Solution_Name: LolScanner.sln
   Wap_Project_Directory: your-wap-project-directory
   Wap_Project_Path: your-wap-project-path.wapproj
 
