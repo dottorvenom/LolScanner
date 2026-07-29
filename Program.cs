@@ -12,6 +12,7 @@ using Microsoft.VisualBasic.FileIO;
 
 
 
+// Main, entry point del programma
 public class LolScanner
 {
     public static void Main(string[] args)
@@ -20,14 +21,23 @@ public class LolScanner
     }
 }
 
+
+
+
+
+
+
+// **********************************************************************************************************
+
+// classe per analizzare IAT
 public static class PeImportAnalyzer
 {
-    private const uint PE_SIGNATURE = 0x4550;
-    private const ushort MACHINE_I386 = 0x014C;
-    private const ushort MACHINE_AMD64 = 0x8664;
+    private const uint PE_SIGNATURE = 0x4550; // offset del PE header, che inizia con "PE\0\0" (0x50 0x45 0x00 0x00)
+    private const ushort MACHINE_I386 = 0x014C; // offset per architettura x86
+    private const ushort MACHINE_AMD64 = 0x8664; // offset per architettura x64
 
-    private const int IMPORT_DIR_OFFSET_X86 = 128;
-    private const int IMPORT_DIR_OFFSET_X64 = 144;
+    private const int IMPORT_DIR_OFFSET_X86 = 128; // offset della directory degli import per PE32 (x86)
+    private const int IMPORT_DIR_OFFSET_X64 = 144; // offset della directory degli import per PE32+ (x64)
 
     private struct SectionInfo
     {
@@ -200,6 +210,15 @@ public static class PeImportAnalyzer
     }
 }
 
+// **********************************************************************************************************
+
+
+
+
+
+
+
+// classe per enumerare i drivers locali dalle directory indicate che contengono i driver e calcolare hash
 public static class DriverEnumerator
 {
     public static List<string> EnumerateSysFilesOnDisk()
@@ -235,11 +254,13 @@ public static class DriverEnumerator
 
 
 
-
+    // Esegue driverquery.exe per ottenere l'elenco dei driver attivi e analizza l'output CSV per estrarre i percorsi dei file dei driver
     public static List<string> EnumerateDriversViaDriverQuery()
     {
         var paths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         string csvOut = RunDriverQuery();
+
+
         if (string.IsNullOrWhiteSpace(csvOut)) return paths.ToList();
 
         using (var ms = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(csvOut)))
@@ -317,7 +338,7 @@ public static class DriverEnumerator
 
 
 
-
+    // Estrae i dati dei drivers dal CSV di output di driverquery.exe
     private static HashSet<string> ExtractDriverNamesFromCsv(string csvOut)
     {
         var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -365,6 +386,8 @@ public static class DriverEnumerator
         return names;
     }
 
+
+    // esegue il comando driverquery.exe per ottenere l'elenco dei driver attivi in formato CSV per il parsing testuale
     private static string RunDriverQuery()
     {
         try
@@ -392,6 +415,8 @@ public static class DriverEnumerator
         }
     }
 
+
+    // calcola hash SHA256 di un file
     public static string CalcolaSha256(string filePath)
     {
         try
@@ -411,24 +436,43 @@ public static class DriverEnumerator
     }
 }
 
+
+
+
+
+
+// **********************************************************************************************************
+
+
+
+
+
+
+
+
+
+
 public static class LolDriversChecker
 {
     private const string LolDriversUrl = "https://www.loldrivers.io/api/drivers.json";
     private const string LocalCachePath = "drivers.json";
     private static readonly TimeSpan CacheMaxAge = TimeSpan.FromHours(12);
 
+
+    // Lista di API sospette importate da driver che potrebbero indicare un comportamento BYOVD. Possibile aggiungere altre API sospette qui e il commento descrittivo
     private static readonly Dictionary<string, string> SuspiciousKernelApis =
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
-            { "ZwTerminateProcess",         ""             },
-            { "ZwUnmapViewOfSection",       "" },
-            //{ "ZwOpenProcess",              ""          },
-            { "ZwAllocateVirtualMemory",    ""        },
-            { "ZwWriteVirtualMemory",       ""          },
-            { "ZwProtectVirtualMemory",     ""       },
-            { "ZwDuplicateToken",     ""       },
+            { "ZwTerminateProcess",""},
+            { "ZwUnmapViewOfSection","" },
+            //{ "ZwOpenProcess",""},
+            { "ZwAllocateVirtualMemory",""},
+            { "ZwWriteVirtualMemory",""},
+            { "ZwProtectVirtualMemory",""},
+            { "ZwDuplicateToken",""},
         };
 
+    //classe per gestire le voci dei driver da LOLDrivers
     public class LolDriverEntry
     {
         public string Id { get; set; }
@@ -437,6 +481,7 @@ public static class LolDriversChecker
         public List<KnownVulnerableSample> KnownVulnerableSamples { get; set; }
     }
 
+    //classe per gestire i driver noti vulnerabili dei driver da LOLDrivers
     public class KnownVulnerableSample
     {
         public string Filename { get; set; }
@@ -446,6 +491,7 @@ public static class LolDriversChecker
         public string OriginalFilename { get; set; }
     }
 
+    // Scarica il file JSON dei driver da LOLDrivers e lo salva in percorso locale
     public static async Task<string> DownloadDriversJsonAsync(string dest = LocalCachePath)
     {
         System.Net.ServicePointManager.SecurityProtocol = System.Net.SecurityProtocolType.Tls12;
@@ -489,6 +535,7 @@ public static class LolDriversChecker
         }
     }
 
+    // Parsing del file JSON dei driver da LOLDrivers
     public static List<LolDriverEntry> ParseDriversJson(string jsonPath)
     {
         string json = File.ReadAllText(jsonPath);
@@ -504,6 +551,7 @@ public static class LolDriversChecker
         }
     }
 
+    // Estrae i nomi dei driver dal file JSON dei driver da LOLDrivers
     public static HashSet<string> ExtractDriverNamesFromTags(List<LolDriverEntry> entries)
     {
         var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -521,6 +569,7 @@ public static class LolDriversChecker
         return names;
     }
 
+    // Elenco hash SHA256 dei driver noti vulnerabili da LOLDrivers
     public static Dictionary<string, List<LolDriverEntry>> BuildHashIndex(List<LolDriverEntry> entries)
     {
         var index = new Dictionary<string, List<LolDriverEntry>>(StringComparer.OrdinalIgnoreCase);
@@ -542,6 +591,7 @@ public static class LolDriversChecker
         return index;
     }
 
+    // Confronta i nomi dei file locali con i nomi dei driver da LOLDrivers
     public static void CompareByName(HashSet<string> lolNames, IEnumerable<string> localFiles)
     {
         Console.WriteLine();
@@ -571,6 +621,7 @@ public static class LolDriversChecker
             : "- " + matches + " match per nome trovati.");
     }
 
+    // confronta gli hash SHA256 dei file locali con gli hash dei driver noti vulnerabili da LOLDrivers
     public static void CompareByHash(Dictionary<string, List<LolDriverEntry>> hashIndex,
         IEnumerable<string> localFiles)
     {
@@ -601,6 +652,7 @@ public static class LolDriversChecker
             : "- " + matches + " driver locali CONFERMATI come vulnerabili.");
     }
 
+    // Controlla la IAT per gli import delle API da ntoskrnl.exe 
     public static void CheckSuspiciousImports(List<string> driverFiles,
         HashSet<string> knownVulnHashes)
     {
@@ -610,39 +662,43 @@ public static class LolDriversChecker
 
         int suspCount = 0;
 
-        var rtcoreFiles = driverFiles.Where(f => Path.GetFileName(f).IndexOf("rtcore", StringComparison.OrdinalIgnoreCase) >= 0).ToList();
-        if (rtcoreFiles.Count > 0)
-        {
-            Console.WriteLine();
-            Console.WriteLine("--- DEBUG: Analisi rtcore64 ---");
-            foreach (var rtFile in rtcoreFiles)
-            {
-                Console.WriteLine("  File: " + rtFile);
-                string hash = DriverEnumerator.CalcolaSha256(rtFile);
-                Console.WriteLine("  SHA256: " + (hash ?? "ERRORE"));
-                if (hash != null && knownVulnHashes.Contains(hash))
-                {
-                    Console.WriteLine("  -> Saltato (già confermato vulnerabile per hash)");
-                    continue;
-                }
-                List<string> imports = PeImportAnalyzer.ExtractImportedApis(rtFile, "ntoskrnl.exe");
-                Console.WriteLine("  Import da ntoskrnl.exe: " + imports.Count);
-                foreach (var imp in imports)
-                    Console.WriteLine("    - " + imp);
-            }
-            Console.WriteLine();
-        }
+        // debug per analizzare solo i driver rtcore64.sys
+        //var rtcoreFiles = driverFiles.Where(f => Path.GetFileName(f).IndexOf("rtcore", StringComparison.OrdinalIgnoreCase) >= 0).ToList();
+        //if (rtcoreFiles.Count > 0)
+        //{
+        //    Console.WriteLine();
+        //    Console.WriteLine("--- DEBUG: Analisi rtcore64 ---");
+        //    foreach (var rtFile in rtcoreFiles)
+        //    {
+        //        Console.WriteLine("  File: " + rtFile);
+        //        string hash = DriverEnumerator.CalcolaSha256(rtFile);
+        //        Console.WriteLine("  SHA256: " + (hash ?? "ERRORE"));
+        //        if (hash != null && knownVulnHashes.Contains(hash))
+        //        {
+        //            Console.WriteLine("  -> Saltato (già confermato vulnerabile per hash)");
+        //            continue;
+        //        }
+        //        List<string> imports = PeImportAnalyzer.ExtractImportedApis(rtFile, "ntoskrnl.exe");
+        //        Console.WriteLine("  Import da ntoskrnl.exe: " + imports.Count);
+        //        foreach (var imp in imports)
+        //            Console.WriteLine("    - " + imp);
+        //    }
+        //    Console.WriteLine();
+        //}
 
+        // Analisi dei driver locali per le API sospette importate da ntoskrnl.exe
         foreach (var f in driverFiles.Distinct(StringComparer.OrdinalIgnoreCase))
         {
             string hash = DriverEnumerator.CalcolaSha256(f);
             if (hash != null && knownVulnHashes.Contains(hash)) continue;
 
-            List<string> imports = PeImportAnalyzer.ExtractImportedApis(f, "ntoskrnl.exe");
+
+            List<string> imports = PeImportAnalyzer.ExtractImportedApis(f, "ntoskrnl.exe");  // estrai le API importate da ntoskrnl.exe
+
             if (imports.Count == 0) continue;
 
             var found = imports
-                .Where(api => SuspiciousKernelApis.ContainsKey(api))
+                .Where(api => SuspiciousKernelApis.ContainsKey(api)) //controlla se l'API importata è nella lista delle API sospette
                 .Select(api => new { Api = api, Desc = SuspiciousKernelApis[api] })
                 .ToList();
 
@@ -662,9 +718,12 @@ public static class LolDriversChecker
             : "- " + suspCount + " driver con API rilevati.");
     }
 
+    // metodo principale per eseguire il controllo dei driver asincrono (vedi Main)
     public static async Task RunAsync()
     {
         string jsonPath = LocalCachePath;
+
+        //controlla cache locale, se non esiste scarica il file JSON dei driver da LOLDrivers
         if (!File.Exists(jsonPath))
         {
             Console.WriteLine("- File cache non trovato – scaricamento in corso...");
@@ -675,13 +734,16 @@ public static class LolDriversChecker
             Console.WriteLine("- Uso cache locale: " + jsonPath);
         }
 
+        // scarica e analizza il file JSON dei driver da LOLDrivers
         var entries = ParseDriversJson(jsonPath);
         Console.WriteLine("- Caricati " + entries.Count + " driver da LOLDrivers (loldrivers.io)");
 
+        // Estrae i nomi dei driver e costruisce un indice hash SHA256 dei driver noti vulnerabili
         var lolNames = ExtractDriverNamesFromTags(entries);
         var hashIndex = BuildHashIndex(entries);
         Console.WriteLine("- Indicizzati " + hashIndex.Count + " hash SHA256 unici");
 
+        // Enumerazione dei file .sys locali su disco e dei driver attivi tramite driverquery
         Console.WriteLine();
         Console.WriteLine("- Enumerazione file .sys su disco...");
         var diskFiles = DriverEnumerator.EnumerateSysFilesOnDisk();
@@ -691,6 +753,7 @@ public static class LolDriversChecker
         var dqFiles = DriverEnumerator.EnumerateDriversViaDriverQuery();
         Console.WriteLine("- Trovati " + dqFiles.Count + " driver attivi corrispondenti via driverquery");
 
+        // crea lista di driver da controllare
         var allFiles = diskFiles
             .Concat(dqFiles)
             .Select(Path.GetFullPath)
@@ -699,11 +762,13 @@ public static class LolDriversChecker
 
         Console.WriteLine("- Totale file unici da verificare: " + allFiles.Count);
 
+        // confronta i nomi dei file locali con i nomi dei driver da LOLDrivers e confronta gli hash SHA256 dei file locali con gli hash dei driver noti vulnerabili da LOLDrivers
         CompareByName(lolNames, allFiles);
         CompareByHash(hashIndex, allFiles);
 
         var knownVulnHashes = new HashSet<string>(hashIndex.Keys, StringComparer.OrdinalIgnoreCase);
 
+        // possiamo forzare il controllo degli import sospetti solo sui driver attivi (dqFiles) o su tutti i file locali (allFiles)
         CheckSuspiciousImports(dqFiles, knownVulnHashes);
         //CheckSuspiciousImports(allFiles, knownVulnHashes);
     }
