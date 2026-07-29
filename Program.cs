@@ -657,7 +657,7 @@ public static class LolDriversChecker
         HashSet<string> knownVulnHashes)
     {
         Console.WriteLine();
-        Console.WriteLine("- Analisi API importate da ntoskrnl.exe (BYOVD check con hash)");
+        Console.WriteLine("- Analisi ulteriori drivers per API importate da ntoskrnl.exe");
         Console.WriteLine(new string('-', 60));
 
         int suspCount = 0;
