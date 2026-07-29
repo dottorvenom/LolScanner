@@ -22,11 +22,13 @@ Downloads and caches the [loldrivers.io](https://www.loldrivers.io/api/drivers.j
 ### PE Import Analysis
 Parses the **Import Directory** of active drivers (PE32 and PE32+ both supported) and flags imports of kernel APIs commonly abused in BYOVD exploitation chains:
 
-| Category | APIs |
-|----------|------|
-| Process termination | `ZwTerminateProcess` |
-| Process hollowing | `ZwUnmapViewOfSection` |
-| Remote memory | `ZwAllocateVirtualMemory`, `ZwWriteVirtualMemory`, `ZwProtectVirtualMemory` |
+| APIs |
+|------|
+| `ZwTerminateProcess` |
+| `ZwUnmapViewOfSection` |
+| `ZwAllocateVirtualMemory` | 
+| `ZwWriteVirtualMemory` |
+| `ZwProtectVirtualMemory` |
 
 You can add more API (for example ZwDuplicateToken)
 
