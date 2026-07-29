@@ -24,12 +24,11 @@ Parses the **Import Directory** of active drivers (PE32 and PE32+ both supported
 
 | Category | APIs |
 |----------|------|
-| Physical memory R/W | `MmMapIoSpace`, `MmMapIoSpaceEx`, `MmCopyMemory` |
 | Process termination | `ZwTerminateProcess` |
 | Process hollowing | `ZwUnmapViewOfSection` |
-| EDR bypass | `KeStackAttachProcess`, `KeUnstackDetachProcess` |
-| Process access | `ZwOpenProcess`, `PsLookupProcessByProcessId` |
 | Remote memory | `ZwAllocateVirtualMemory`, `ZwWriteVirtualMemory`, `ZwProtectVirtualMemory` |
+
+You can add more API (for example ZwDuplicateToken)
 
 Drivers already confirmed vulnerable by hash are skipped in this pass to avoid duplicate reporting.
 
